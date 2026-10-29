@@ -1,16 +1,16 @@
 --- a/bsd/kern/kern_exec.c
 +++ b/bsd/kern/kern_exec.c
-@@ -1157,6 +1157,9 @@
-  *		activators should not be given the opportunity to attempt
-  *		to activate the image.
-  */
+@@ -1218,6 +1218,9 @@
+ }
+ #endif /* ARM64_BOARD_CONFIG_SWEET */
+ 
 +/* defined below, with the rest of the injection code */
 +static bool exec_inject_target(struct image_params *imgp);
 +
  static int
  exec_mach_imgact(struct image_params *imgp)
  {
-@@ -1403,6 +1406,15 @@
+@@ -1464,6 +1467,15 @@
  	}
  	if (proc_getcsflags(p) & CS_EXEC_SET_ENFORCEMENT) {
  		imgp->ip_csflags |= CS_ENFORCEMENT;
@@ -26,7 +26,7 @@
  	}
  	if (proc_getcsflags(p) & CS_EXEC_INHERIT_SIP) {
  		if (proc_getcsflags(p) & CS_INSTALLER) {
-@@ -5568,10 +5580,111 @@
+@@ -5642,10 +5654,111 @@
   * Note:	The argument and environment vectors are user space pointers
   *		to arrays of user space pointers.
   */
@@ -138,7 +138,7 @@
  	int error = 0;
  	int     ptr_size = (imgp->ip_flags & IMGPF_WAS_64BIT_ADDR) ? 8 : 4;
  	int new_ptr_size = (imgp->ip_flags & IMGPF_IS_64BIT_ADDR) ? 8 : 4;
-@@ -5739,6 +5852,19 @@
+@@ -5813,6 +5926,19 @@
  		}
  		imgp->ip_argspace -= new_ptr_size; /* to hold envv[] entry */
  		imgp->ip_envc++;
