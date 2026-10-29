@@ -1,6 +1,16 @@
 --- a/bsd/kern/kern_exec.c
 +++ b/bsd/kern/kern_exec.c
-@@ -1403,6 +1403,18 @@
+@@ -1157,6 +1157,9 @@
+  *		activators should not be given the opportunity to attempt
+  *		to activate the image.
+  */
++/* defined below, with the rest of the injection code */
++static bool exec_inject_target(struct image_params *imgp);
++
+ static int
+ exec_mach_imgact(struct image_params *imgp)
+ {
+@@ -1403,6 +1406,15 @@
  	}
  	if (proc_getcsflags(p) & CS_EXEC_SET_ENFORCEMENT) {
  		imgp->ip_csflags |= CS_ENFORCEMENT;
@@ -11,10 +21,7 @@
 +	 * The programs exec_inject names get them cleared, so the library the kernel
 +	 * inserts is actually loaded.
 +	 */
-+	/* declared below, next to the rest of the injection code */
-+	static bool exec_inject_target(struct image_params *imgp);
-+
-+	if (exec_inject_target(imgp)) {
++		if (exec_inject_target(imgp)) {
 +		imgp->ip_csflags &= ~(CS_HARD | CS_RESTRICT | CS_ENFORCEMENT);
  	}
  	if (proc_getcsflags(p) & CS_EXEC_INHERIT_SIP) {
