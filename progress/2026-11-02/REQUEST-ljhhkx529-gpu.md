@@ -25,10 +25,10 @@ boot_b 日常版：`t32-bl-daily`（按键读 PMIC、亮度走 DSI0 DCS `51`）�
 
 | 仓库 | 提交 | 内容 |
 |---|---|---|
-| `AdrenoMetal` | **`b82fa275`** | `Default every Metal client to single-sample rendering` |
+| `AdrenoMetal` | **`07549e60`** | `Default every Metal client to single-sample rendering`（`b82fa275` 是它的文档提交，也是分支 HEAD） |
 | `AdrenoMetal` | `bc4e8b81` | `Correlate Metal surfaces, render paths and completed pixel samples` |
 | `AdrenoMetal` | `b2af19a2` | `Verify shader-selected viewport and scissor arrays` |
-| `Adreno740` | **`4db2aa75`** | `Document GPU frame trace and pixel export`（含双环调度） |
+| `Adreno740` | **`4db2aa75`** | `Document GPU frame trace and pixel export`（含双环调度，分支 HEAD） |
 | `Adreno740` | `5106df65` | `Preserve GPU context and queue ordering across priority rings` |
 | `Adreno740` | `c7b937d4` | `Reschedule priority work after switching and track global fence progress` |
 | `Adreno740` | `49ec11a8` | `Add bounded GPU frame traces and completed pixel capture storage` |
@@ -55,7 +55,7 @@ kits/AdrenoPM4       282606b528b2595bc4274ea7490b62b323f35a5f
 
 1. **用上面这组 pin 重编一次 GPU 插件和 Adreno740 驱动**（`NativeAdrenoMetal.bundle` + 内核里的 Adreno740/AdrenoMetal）。
    如果分支的 Metal 接口改动要求插件和驱动同时换，请一起换——我们两边版本不一致时插件会直接拿不到设备。
-2. **确认单一采样默认值**（`b82fa275`）是否就是小部件变白的修复；如果还需要额外启动参数，请告诉名字。
+2. **确认单一采样默认值**（`07549e60`）是否就是小部件变白的修复；如果还需要额外启动参数，请告诉名字。
 3. 如果方便，**放宽客户端窗口数**：现在 `kClientWindows` 只有 2 个客户端槽位，名单里多出来的进程拿得到设备但没有专属窗口。
    可以是启动参数（例如 `sheng-gpu-clients=N`），也可以是固定的 4 个。
 
