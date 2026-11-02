@@ -19,6 +19,27 @@ boot_b 日常版：`t32-bl-daily`（按键读 PMIC、亮度走 DSI0 DCS `51`）�
 我们做过的实验：把 `.clients` 改成 `SpringBoard,WidgetRenderer_Default,iconservicesagent,Preferences`
 （等长原地重写，12,172,992 字节不变），镜像 `t32-gpu4` 已做好，等上机验证。
 
+## 今晚的实测结果（2026-11-02 深夜，真机）
+
+只改附加包、其余一律不动（同一份日常版载荷、同样的 43 个启动参数、同样的内核，
+附加包 12,172,992 字节等长替换，卷差异 1 个区间），逐版测下来：
+
+| 名单 | 结果 |
+|---|---|
+| `mediaserverd,SpringBoard`（日常版） | 能开机，小部件白色 |
+| `SpringBoard,Preferences` | 能开机，**没有任何变化** |
+| **`SpringBoard,WidgetRenderer_Default`** | **能开机，小部件从白色变成黑色** |
+| 4 个客户端 + 38 行填充 | **卡米标重启**（内核崩） |
+
+**白色 → 黑色**说明 `WidgetRenderer_Default` 已经拿到 GPU 设备并开始渲染了，
+但它的画面到不了屏幕：`kClientWindows` 只有渲染服务 + 2 个窗口，
+`SpringBoard` 和 `WidgetRenderer_Default` 正好占满，没有第三个窗口给它。
+
+内核里也没有可调的开关（`sheng-gpu-*` 一共 21 个：metal/metal-opens/addon/perf/selftest/
+bringup/wc/coherent/pool/bank/asid/sid/zap/cmddb-version… 没有窗口或客户端数量相关的）。
+
+所以第 3 条（放宽客户端窗口数）不是"方便的话"，而是**唯一挡住小部件和设置的最后一道门**。
+
 ## 上游已经修了这些（分支 `fix/gpu-scheduling-and-metal`，比 main 多 13 个提交）
 
 指向的驱动提交：
