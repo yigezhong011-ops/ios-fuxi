@@ -40,6 +40,37 @@ bringup/wc/coherent/pool/bank/asid/sid/zap/cmddb-version… 没有窗口或客�
 
 所以第 3 条（放宽客户端窗口数）不是"方便的话"，而是**唯一挡住小部件和设置的最后一道门**。
 
+## 这道门别人已经开过了：houji 的 `NativeAdrenoPublish.cpp`
+
+`lonzzi/UniXNU-houji` 是小米 14（houji，同为 SM8550）的移植，它的
+`NativeAdrenoPublish.cpp` 把客户端窗口从 2 个扩到了 4 个，注释里正好写着我们遇到的症状：
+
+> `int-198: iconservicesagent reached 128 MiB into its window and then lost its Metal device;
+>  whether the window is the cause is what the [gpu windows] log row decides before these sizes change.`
+
+它的常量与窗口表（`enum` 与 `kClientWindows` 相邻，改起来很小）：
+
+```c
+enum : unsigned {NativeAdrenoMaxClients=4};
+static const struct {uint64_t start,bytes;} kClientWindows[NativeAdrenoMaxClients]={
+    {0x20000000ull,0x40000000ull},   /* 1 GiB, the render server */
+    {0x10000000ull,0x10000000ull},   /* 256 MiB */
+    {0x64000000ull,0x0C000000ull},   /* 192 MiB */
+    {0x70000000ull,0x0C000000ull}};  /* 192 MiB */
+```
+
+同一仓库的 `checks/gpu-client-slots.py` 里是更新的一版，**5 个槽**：
+
+```c
+static_assert(NativeAdrenoGeneralClients==4 && NativeAdrenoPreferencesSlot==4 && NativeAdrenoMaxClients==5);
+```
+
+也就是说：4 个通用窗口 + 1 个专门留给 Preferences。`checks/gpu-address-space.py` 还断言
+`kClientWindows[0].bytes == 2 GiB`（渲染服务的窗口后来扩大到 2 GiB）。
+
+**请求**：把 fuxi 内核里的 `kClientWindows` 照 houji 这一版改（4 或 5 个槽，第一个给渲染服务留大一些），
+并在诊断里加一行 `[gpu windows]`（谁占了哪个窗口、剩几个），这样下一次就能直接看出是窗口用完了还是别的原因。
+
 ## 上游已经修了这些（分支 `fix/gpu-scheduling-and-metal`，比 main 多 13 个提交）
 
 指向的驱动提交：
