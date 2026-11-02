@@ -29,16 +29,18 @@ boot_b 日常版：`t32-bl-daily`（按键读 PMIC、亮度走 DSI0 DCS `51`）�
 | `mediaserverd,SpringBoard`（日常版） | 能开机，小部件白色 |
 | `SpringBoard,Preferences` | 能开机，**没有任何变化** |
 | **`SpringBoard,WidgetRenderer_Default`** | **能开机，小部件从白色变成黑色** |
-| 4 个客户端 + 38 行填充 | **卡米标重启**（内核崩） |
+| `SpringBoard,WidgetRenderer_Default,Preferences`（3 个） | **卡米标重启** |
+| 4 个客户端 + 38 行填充 | **卡米标重启** |
+
+**2 个客户端能开，3 个就崩**——所以客户端槽位确实是 2 个（内核 `__Z14kClientWindows`
+里能读到 `0x20000000` 1 GiB 的渲染服务窗口 + 两个 171 MiB 的客户端窗口，
+地址 `0x60000000`、`0x6aaa9000` 前后相接）。
 
 **白色 → 黑色**说明 `WidgetRenderer_Default` 已经拿到 GPU 设备并开始渲染了，
-但它的画面到不了屏幕：`kClientWindows` 只有渲染服务 + 2 个窗口，
-`SpringBoard` 和 `WidgetRenderer_Default` 正好占满，没有第三个窗口给它。
-
-内核里也没有可调的开关（`sheng-gpu-*` 一共 21 个：metal/metal-opens/addon/perf/selftest/
-bringup/wc/coherent/pool/bank/asid/sid/zap/cmddb-version… 没有窗口或客户端数量相关的）。
-
-所以第 3 条（放宽客户端窗口数）不是"方便的话"，而是**唯一挡住小部件和设置的最后一道门**。
+但它的画面是黑的：这更像 Metal 渲染路径（单采样/合成）的问题，而不是槽位问题。
+两件事都指向"需要改内核"。内核里也没有可调的开关（`sheng-gpu-*` 一共 21 个：
+metal/metal-opens/addon/perf/selftest/bringup/wc/coherent/pool/bank/asid/sid/zap/cmddb-version…
+没有窗口或客户端数量相关的）。
 
 ## 这道门别人已经开过了：houji 的 `NativeAdrenoPublish.cpp`
 
