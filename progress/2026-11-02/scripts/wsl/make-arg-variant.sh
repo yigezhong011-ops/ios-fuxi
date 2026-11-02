@@ -43,4 +43,19 @@ if [ -n "${ADT:-}" ]; then
   mcopy -o -i "$W/vol.img" "$ADT" ::/EFI/UniXNU/Payloads/kernel.macho.adt
   echo "ADT replaced with $ADT"
 fi
+# GPUADDON=<file> replaces Payloads/kernel.macho.gpuaddon, same size only (addon-set-clients.py --same-size), written over its
+# own clusters like KERNEL.
+# Never allocate new clusters or clear the free ones: the Data seed is packed into the FAT's free space (payload.adt
+# packed_data_ramdisk; the loader fills /chosen/memory-map/PackedRAMDisk). Zeroing it (6.5 MiB less gzip) made every such
+# image stop at the Mi logo or go black after the colour bars (t32-bl-daily-z vs the identical t32-bl-daily).
+if [ -n "${GPUADDON:-}" ]; then
+  old=$(mdir -i "$W/vol.img" ::/EFI/UniXNU/Payloads/kernel.macho.gpuaddon | awk '/gpuaddon/{print $3}' | tr -d ' ')
+  new=$(stat -c %s "$GPUADDON")
+  [ "$old" = "$new" ] || { echo "gpuaddon size $new != $old: refusing"; exit 1; }
+  mcopy -o -i "$W/vol.img" "$GPUADDON" ::/EFI/UniXNU/Payloads/kernel.macho.gpuaddon
+  mtype -i "$W/vol.img" ::/EFI/UniXNU/Payloads/kernel.macho.gpuaddon | cmp -s - "$GPUADDON" || { echo "gpuaddon copy mismatch"; exit 1; }
+  echo "gpuaddon replaced with $GPUADDON ($new bytes), read back identical"
+fi
+# Nothing outside the replaced files may change: count differing bytes against the source volume.
+echo "volume bytes changed: $(cmp -l "$VOL" "$W/vol.img" | wc -l)"
 bash /root/fuxi/pack-payload.sh "$W/vol.img" "$OUT" | tail -2

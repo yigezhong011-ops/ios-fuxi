@@ -298,12 +298,12 @@ static void bl_diag(uint32_t target)
 {
   char line[120];
   char *p = line, *end = line + sizeof line - 1;
-  static const char *const names[] = {" g", " s", " q", " t", " l", " k", " f", " e", " c", " i"};
+  static const char *const names[] = {" g", " s", " q", " t", " l", " k", " f", " e", " c", " i", " r"};
   uint32_t vals[] = {(uint32_t)BL_STATS[12], (uint32_t)BL_STATS[0], (uint32_t)BL_STATS[1], target, (uint32_t)BL_STATS[2],
                      (uint32_t)BL_STATS[14], (uint32_t)BL_STATS[5], (uint32_t)BL_STATS[9], (uint32_t)BL_STATS[13],
-                     (uint32_t)BL_STATS[15]};
+                     (uint32_t)BL_STATS[15], (uint32_t)BL_STATS[10]};
   p = put_str(p, end, "BL");
-  for (int i = 0; i < 10; ++i) {
+  for (int i = 0; i < 11; ++i) {
     p = put_str(p, end, names[i]);
     p = put_hex(p, end, vals[i]);
   }
@@ -316,8 +316,9 @@ static void bl_diag(uint32_t target)
 static inline void bl_diag(uint32_t target) { (void)target; }
 #endif
 
-/* One DCS long write 51 <hi> <lo>; 0 when the panel link took it. */
-static int dsi_brightness(uint64_t base, uint32_t level)
+/* One packet (1 or 2 FIFO words, packed as msm dsi_host does: header word = flags << 24 | type << 16 | wc/data, then the
+ * payload padded with 0xff) through the TPG command-DMA FIFO; 0 when the panel link took it. */
+static int dsi_send(uint64_t base, uint32_t w0, uint32_t w1, unsigned count)
 {
   if ((dr(base, DSI_CTRL) & 5u) != 5u)            /* controller enabled, command mode */
     return 1;
@@ -330,11 +331,11 @@ static int dsi_brightness(uint64_t base, uint32_t level)
   uint32_t dma = dr(base, DSI_DMA_CTRL), schedule = dr(base, DSI_DMA_SCHEDULE), length = dr(base, DSI_DMA_LEN);
   dw(base, DSI_INT_CTRL, (dr(base, DSI_INT_CTRL) & ~DSI_STATUS_BITS) | DSI_INT_DMA_DONE);
   dw(base, DSI_TPG_CTRL, 0x30006);
-  dw(base, DSI_TPG_FIFO, 0xc0390003u);            /* last, long packet, DCS long write (0x39), 3 bytes */
-  dw(base, DSI_TPG_FIFO, 0xff000051u | ((level & 0xff) << 16) | ((level >> 8) << 8));
+  dw(base, DSI_TPG_FIFO, w0);
+  dw(base, DSI_TPG_FIFO, count == 2 ? w1 : 0);    /* the FIFO takes pairs; the byte count below excludes the padding */
   dw(base, DSI_DMA_CTRL, (dma & 0x2bffffffu) | 0x10000000u);
   dw(base, DSI_DMA_SCHEDULE, schedule & ~2u);
-  dw(base, DSI_DMA_LEN, 8);
+  dw(base, DSI_DMA_LEN, count * 4);
   dw(base, DSI_DMA_TRIGGER, 1);
   int rc = 6;
   uint32_t status = 0;
@@ -356,6 +357,39 @@ static int dsi_brightness(uint64_t base, uint32_t level)
   return rc;
 }
 
+/* DCS long write 51 <hi> <lo>: last + long packet, type 0x39, 3 bytes. */
+static int dsi_brightness(uint64_t base, uint32_t level)
+{
+  return dsi_send(base, 0xc0390003u, 0xff000051u | ((level & 0xff) << 16) | ((level >> 8) << 8), 2);
+}
+
+#ifdef PANEL_120HZ
+/* The stock DT's timing@1 (120 Hz) qcom,mdss-dsi-timing-switch-command, packet by packet. timing@0 (60 Hz, what the boot
+ * loader set) is the same sequence with 60 08 and the same link clock, porches and DSC, so only the panel's own rate changes.
+ * native_backlight_stats[10]: 0 all sent, else 100 * (packet + 1) + the dsi_send failure. */
+static void panel_120hz(uint64_t base)
+{
+  static const uint32_t seq[][3] = {
+    {0xc0390003u, 0xff5a5af0u, 2},   /* 39: f0 5a 5a   unlock level 2 */
+    {0x80150060u, 0, 1},             /* 15: 60 00      120 Hz (60 08 = 60 Hz) */
+    {0xc0390004u, 0xbd3000b0u, 2},   /* 39: b0 00 30 bd */
+    {0x801504bdu, 0, 1},             /* 15: bd 04 */
+    {0xc0390004u, 0xf21600b0u, 2},   /* 39: b0 00 16 f2 */
+    {0xc0390003u, 0xff7001f2u, 2},   /* 39: f2 01 70 */
+    {0x80150ff7u, 0, 1},             /* 15: f7 0f      update */
+    {0xc0390003u, 0xffa5a5f0u, 2},   /* 39: f0 a5 a5   lock */
+  };
+  for (unsigned i = 0; i < sizeof seq / sizeof seq[0]; ++i) {
+    int rc = dsi_send(base, seq[i][0], seq[i][1], seq[i][2]);
+    if (rc) {
+      BL_STATS[10] = (int32_t)(100 * (i + 1) + (unsigned)rc);
+      return;
+    }
+  }
+  BL_STATS[10] = 0;
+}
+#endif
+
 /* Replaces ShengBacklight::kick(unsigned): called for engines 0 and 1 on every new level; engine 0 sends it to the panel. */
 void bl_kick(void *self, uint32_t engine)
 {
@@ -367,6 +401,10 @@ void bl_kick(void *self, uint32_t engine)
   if (*written == (int32_t)target)
     return;
   uint32_t level = target > PANEL_MAX ? PANEL_MAX : target < PANEL_MIN ? PANEL_MIN : target;
+#ifdef PANEL_120HZ
+  if (BL_STATS[10] == -1)                         /* once, on the work loop, with the desktop up (see bl_start) */
+    panel_120hz(*DSI_SLOT);
+#endif
   int rc = dsi_brightness(*DSI_SLOT, level);
   *written = (int32_t)target;
   if (rc) {
@@ -389,6 +427,11 @@ void bl_start(void)
   *DSI_SLOT = base;
   BL_STATS[13] = (int32_t)dr(base, DSI_CTRL);
   BL_STATS[12] = 10;
+#ifdef PANEL_120HZ
+  /* Sent with the first brightness write, not here: t32-120a sent it at this point, during the late probes (sheng_dpu_probe
+   * reprograms the display pipes right after), and stopped at the Mi logo and rebooted. */
+  BL_STATS[10] = -1;
+#endif
   void *self = (void *)vcall(BL_META, 0x68)(BL_META, (void *)0); /* OSMetaClass::alloc */
   if (!self) { BL_STATS[12] = -12; bl_diag(0); return; }
   const uint8_t usable[2] = {1, 1};

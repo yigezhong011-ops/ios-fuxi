@@ -1,4 +1,6 @@
-# 2026-11-02：实体按键已通，亮度进行中
+# 2026-11-02：实体按键、亮度已通
+
+> 更新（下午）：亮度已在真机上验证。`t32-bl1` 诊断行 `BL ga s4 q167 t25e l25e k167 f0 e0 c175 i500`：iOS 发来 0x167 次亮度请求，全部通过 DSI 写给屏幕，0 次失败。boot_b 现为 `t32-bl-daily`（按键 + 亮度）。见文末"下午的进展"。
 
 设备：小米 13（fuxi，SM8550），系统用第三方 t32 内核（ljhhkx529）。脚本在 `scripts/wsl/`。不含任何镜像、内核、密钥和设备序列号。
 
@@ -64,6 +66,28 @@ fuxi 屏幕"m3 38 0c 0a sec cmd mode dsc"：`51 07 ff` 是正常亮度上限，`
 ## 注意：A/B 槽重试次数
 
 iOS 从不把启动槽标记为成功，每次开机都会消耗一次重试次数。减到 0 后，正常开机会进 fastboot，`fastboot boot` 报 "Load Error"。用 `fastboot set_active b` 可以恢复（重试次数回到 7）。之前以为"a 槽坏了"，实际就是这个原因。
+
+## 下午的进展
+
+### 亮度（已通）
+- `make-t32-bl.sh`：日常版，按键加亮度；`make-t32-bl-diag.sh`：带 BL 诊断行的版本。
+- 亮度命令只在 iOS 发布亮度服务之后才发。如果在开机初期就发 DCS 命令，系统会崩。
+
+### 打包陷阱：Data 种子藏在 FAT 的"空闲"簇里
+- 载荷配置是 `packed_data_ramdisk`：Data 卷的初始数据就放在载荷 FAT 卷的空闲簇里，由引导程序填写 `/chosen/memory-map/PackedRAMDisk`。
+- 后果一：如果把空闲空间清零，镜像会小 6.5 MiB，但种子被擦掉，开机就卡在米标或者过了色条后黑屏。对照实验：`t32-bl-daily-z` 和能开机的 `t32-bl-daily` 只差清零这一步，结果开不了机。
+- 后果二：替换载荷里的文件时，大小必须和原来完全相同，原地覆盖。`addon-set-clients.py --same-size` 就是这样替换 GPU 附加包的。
+
+### 黑壁纸、白色小部件（在查）
+- **壁纸：** iPadOS 17 默认壁纸是 HEIC 格式，没有硬件解码器就画不出来。t32 内核支持 `/private/var/ngpu/wallpaper` 覆盖，但 t32 的 GPU 附加包里没有这份 PNG。参考 UniXNU 的 `make-wallpaper-overlay.py`。
+- **小部件和设置：** t32 的 `NativeAdrenoMetal.clients` 只列了 `mediaserverd` 和 `SpringBoard`。内核的 `kClientWindows` 只有渲染服务加两个客户端窗口。参考其他机型的名单：
+  - uke：`iconservicesagent, PosterBoard, WidgetRenderer_Default, CollectionsPoster, AegirPoster, KaleidoscopePoster`
+  - pong：`SpringBoard, CollectionsPoster, WidgetRenderer_Default`
+
+### iPhone 布局、灵动岛（在查）
+- pong 先在 ADT 里换成 iPhone 身份（机型 `iPhone17,1`，`artwork-device-subtype 2622`，`/buttons` 写明没有 Home 键，主板保留 OS 原来的 J171），再清掉 MobileGestalt 缓存，界面就变成了手机布局。
+- 灵动岛另需一个用户态 hook：`MGGetBoolAnswer` 对 `YlEtTtHlNesRBMal1CqRaA` 返回真，并修补状态栏的 provider（`userland/ui_compat18.c`）。
+- 我们这边：`make-t32-iphone.sh`（iPhone 15 Pro，`iPhone16,1`，2556，保留 J120）。前一轮测试被上面的清零问题干扰，作废，重新测试中。
 
 ## 参考
 
