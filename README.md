@@ -17,6 +17,7 @@
 
 每天的记录（做法、诊断读数、脚本）：
 
+- [progress/2026-11-04/claude](progress/2026-11-04/claude/README.md)：自带应用装上（数据迁移被跳过是原因）、卡顿原因、壁纸崩溃定位
 - [progress/2026-11-04](progress/2026-11-04/README-gpu-ci.md)：GPU 插件 CI（只编插件，UniXNU 793d6bddf7）
 - [progress/2026-11-03](progress/2026-11-03/claude/README.md)：iPhone 14 Pro 布局、USB 调试口、TWRP 读日志、红条和 GPU 的根因；同一天的[壁纸实验（重建载荷）](progress/2026-11-03/README.md)和 [USB 固件补丁](progress/2026-11-03/firmware-usb-power/README.md)
 - [progress/2026-11-02](progress/2026-11-02/README.md)：按键、亮度、打包陷阱（Data 种子藏在 FAT 空闲簇里）、壁纸 / GPU / iPhone 布局的调查
