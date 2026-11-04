@@ -50,9 +50,11 @@
 
 ## 第 1 步：看 Data 的真实文件
 
-`logs\data-read.out.txt` 是校验和列表的结果，`read-data-raw.sh` 产生它：先确认 `hash OK`。如果 7z 没能列出文件，就说明这条路不通，要告诉用户，不要猜。
+已试过：`logs\data-raw.img` 去掉末尾 93 字节 dd 输出后，`hash OK`，和手机一致。但 7z 报 `Cannot open the file as archive`，列不出文件。可能的原因是这份副本只是 Data 中间的 16 GiB（从第 54282042 个 4K 块开始），不含 APFS 容器开头，这一点没验证。不要重复这个 7z 命令。
 
-如果列出来了，回答三个问题：
+下一步要换方法，比如解析副本里的 APFS 结构，或按内容搜索（`Library/Application Support/PRBPosterExtensionDataStore`、SQLite 文件头）。文件名搜索在原始 Data 上不可靠，以前搜 `_CodeSignature` 是 0 次，但文件内容能搜到。
+
+要回答三个问题：
 
 1. `.../Library/Application Support/PRBPosterExtensionDataStore/61/` 里有没有数据库文件，大小和权限如何。容器是 `Containers/Data/Application/353FB615-9AD2-407D-B79C-EFF255D5432B`。
 2. `/private/var/ngpu/wallpaper` 有没有写入。
