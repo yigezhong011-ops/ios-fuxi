@@ -17,7 +17,7 @@
 ## 当前状态
 
 - 手机：fastboot，b 槽，重试次数 7。`boot_b` 是 `t50-mine-gpu-fix.img`，今晚没有刷分区。
-- 今晚测试镜像 `t50-mine-gpu-wall.img` 启动过一次，留下约 18 KB 文件在 Data 的 `/private/var/ngpu/wallpaper`。换回日常镜像后它们会被挂到 iPad 壁纸路径，理论上无影响，没实测。
+- 今晚测试镜像 `t50-mine-gpu-wall.img` 启动过一次，它的 25 个 Bokeh 目录文件可能留在 Data 的 `/private/var/ngpu/wallpaper`，是否写入没验证。日常内核的第三个覆盖挂载目标不是 `/Library/Wallpaper`，而是 7570 的 `.ca` 路径（改动见 `make-t50-gpu-wall.sh` 第 57–60 行）。残留文件对日常启动有没有影响，没有验证。
 - GPU 插件和驱动没有改动，没有跑 CI。
 - 用户把 WiFi 放后了（`Kerfand/UniXNU-fuxi-wifi` 没有读），优先 GPU。
 
