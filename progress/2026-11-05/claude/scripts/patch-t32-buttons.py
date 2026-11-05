@@ -54,6 +54,10 @@ defs += os.environ.get('BLOB_DEFS', '').split()
 if '-DPANEL_120' in defs:
     defs += [f"-DADDR_IODELAY={syms['_IODelay']:#x}UL", f"-DADDR_IOLOG={syms['_IOLog']:#x}UL",
              f"-DADDR_MACH_TIME={syms['_mach_absolute_time']:#x}UL"]
+if '-DCPU_PROBE' in defs:
+    defs.append(f"-DADDR_REAL_NCPUS={syms['_real_ncpus']:#x}UL")
+if '-DCPU_LOAD' in defs:
+    defs += [f"-DADDR_PROCESSOR_ARRAY={syms['_processor_array']:#x}UL", f"-DADDR_PROCESSOR_INFO={syms['_processor_info']:#x}UL"]
 if any(d.startswith('-DCLOCK_SECS=') for d in defs):
     defs.append(f"-DADDR_CLOCK_SET={syms['_clock_set_calendar_microtime']:#x}UL")
 row_users = [d for d in ('-DDIAG_ROW', '-DBL_DIAG_ROW', '-DUSB_DIAG') if d in defs]

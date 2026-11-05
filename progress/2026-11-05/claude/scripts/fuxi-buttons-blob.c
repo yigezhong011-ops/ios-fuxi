@@ -389,9 +389,59 @@ static void p_switch(struct state *s)
     s->tries = 99;
 }
 
+#ifdef CPU_PROBE
+/* Read only: PSCI AFFINITY_INFO (0 on, 1 off, 2 pending) for the eight MPIDRs, plus the kernel's real_ncpus.
+ * "FUXI120 cpu <mask of cores on> <replies other than on or off, shifted 16, or real_ncpus>" */
+static long p_affinity(uint64_t mpidr)
+{
+  register uint64_t x0 __asm__("x0") = 0xc4000004u;
+  register uint64_t x1 __asm__("x1") = mpidr;
+  register uint64_t x2 __asm__("x2") = 0;
+  __asm__ volatile("smc #0" : "+r"(x0), "+r"(x1), "+r"(x2) : :
+                   "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "memory");
+  return (long)x0;
+}
+
+static void p_cpus(void)
+{
+  uint32_t on = 0, odd = 0;
+  for (unsigned i = 0; i < 8; ++i) {
+    long r = p_affinity((uint64_t)i << 8);
+    if (r == 0)
+      on |= 1u << i;
+    else if (r != 1)
+      odd |= 1u << i;
+  }
+  p_line("cpu", on, (odd << 16) | *(volatile uint32_t *)ADDR_REAL_NCPUS);
+}
+#endif
+
+#ifdef CPU_LOAD
+/* Read only. "FUXI120 c<n> <busy ticks> <idle ticks>" per CPU, cumulative, from the kernel's own PROCESSOR_CPU_LOAD_INFO. */
+typedef int (*processor_info_fn)(void *processor, int flavor, void **host, uint32_t *info, uint32_t *count);
+static void p_load(void)
+{
+  char tag[3] = {'c', '0', 0};
+  for (unsigned i = 0; i < 8; ++i, ++tag[1]) {
+    void *processor = ((void *volatile *)ADDR_PROCESSOR_ARRAY)[i];
+    uint32_t info[4] = {0, 0, 0, 0}, count = 4;
+    void *host = 0;
+    if (processor)
+      ((processor_info_fn)ADDR_PROCESSOR_INFO)(processor, 2, &host, info, &count);
+    p_line(tag, info[0] + info[1] + info[3], info[2]);
+  }
+}
+#endif
+
 /* One measurement; every minute the rate goes to the log, and a panel found back at 60 Hz with the screen on is switched again. */
 static void p_tick(struct state *s)
 {
+#ifdef CPU_PROBE
+  p_cpus();
+#endif
+#ifdef CPU_LOAD
+  p_load();
+#endif
   if (!s->dsi) {
     s->dsi = ML_IO_MAP(P_DSI0, 0x1000);
     s->intf = (volatile uint32_t *)ML_IO_MAP(P_INTF1, 0x1000);
