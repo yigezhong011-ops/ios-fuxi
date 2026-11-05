@@ -48,6 +48,10 @@
 - `options=1` 时的分支还没读完，我曾猜“文件不存在就失败”，读指令后没有证据，不要采信。
 - 系统时钟 1969 年是否相关，未知。上游 asteroids 记录用 `QcomPmicRtc` 加 `/private/var/db/unixnu-rtc-offset` 修了时钟（同为 PMK8550，SoC 不同）。
 
+## 11-05 更正
+
+第 1 步已经完成，不要重复。7z 打不开是因为 APFS 容器从副本第 1153 个 4K 块开始，用 `dump\wsl\apfs-read.py` 读。结果：存储目录只有空的 `59/`，没有 `61/` 和数据库。E 盘已压缩，现在约 34 GB 可用。上面“E 盘：先处理”的压缩一项也已完成。插件 `8c1ea13`、`5a50581` 已移植并编译成功，还没上机。今天的进度见 `progress/2026-11-05/claude/`。
+
 ## 第 1 步：看 Data 的真实文件
 
 已试过：`logs\data-raw.img` 去掉末尾 93 字节 dd 输出后，`hash OK`，和手机一致。但 7z 报 `Cannot open the file as archive`，列不出文件。可能的原因是这份副本只是 Data 中间的 16 GiB（从第 54282042 个 4K 块开始），不含 APFS 容器开头，这一点没验证。不要重复这个 7z 命令。
