@@ -46,6 +46,10 @@ static void point_for(unsigned phase, int *px, int *py)
 #define ADDR_TOUCH_IDS    0xfffffff00c184754UL
 #define ADDR_TOUCH_SINK   0xfffffff00c2324f0UL
 #define ADDR_TOUCH_CTX    0xfffffff00c2324e8UL
+#define ADDR_TOUCH_HID    0xfffffff00c1846e4UL
+#define ADDR_FENCE_WAIT   0xfffffff00c18044cUL
+#define ADDR_SUBMIT_IBS   0xfffffff00c180420UL
+#define ADDR_PRINTF       0xfffffff00b8cc820UL
 
 static inline u64 counter(void)
 {
@@ -117,9 +121,8 @@ __attribute__((noinline)) static void touch_swipe(int x0, int y0, int x1, int y1
   touch_publish(0, x1, y1);
 }
 
-__attribute__((noinline)) static void touch_tap(void)
+__attribute__((noinline)) static void touch_gesture(unsigned phase)
 {
-  const unsigned phase = next_phase() - 1;
   if (phase == 0) {
     /* first gesture after boot: swipe up from the bottom to leave the lock screen */
     touch_swipe(SWIPE_X, SWIPE_Y0, SWIPE_X, SWIPE_Y1);
@@ -156,11 +159,31 @@ __attribute__((noinline)) static int shot_capture(void *cookie, u8 *rgb, u64 cap
   return 1;
 }
 
-/* The provider the kernel calls for a SCREENSHOT command: tap first, then hand it the frame. */
+static void report(unsigned phase);
+
+/* The provider the kernel calls for a SCREENSHOT command: gesture, print the counters, then the
+ * frame. The gesture phase comes from touch slot 1, so the sequence survives across commands. */
 __attribute__((noinline)) static int capture_and_tap(void *cookie, u8 *rgb, u64 capacity, u32 *width, u32 *height)
 {
-  touch_tap();
+  const unsigned phase = next_phase() - 1;
+  touch_gesture(phase);
+  report(phase);
   return shot_capture(cookie, rgb, capacity, width, height);
+}
+
+/* One line per screenshot so the frame rate and the GPU counters arrive on the serial port and no
+ * longer need a TWRP trip: FUXI120S p=<phase> hid=<touch reports> calls=<fence waits>
+ * to=<timeouts> sub=<last submitted> done=<completed> ibs=<submissions>. */
+__attribute__((noinline)) static void report(unsigned phase)
+{
+  int (*kprintf)(const char *, ...) = (int (*)(const char *, ...))ADDR_PRINTF;
+  volatile u32 *fw = (volatile u32 *)ADDR_FENCE_WAIT;
+  kprintf("FUXI120S p=%u hid=%u calls=%u to=%u sub=%u done=%u ibs=%u\n",
+          phase,
+          *(volatile u32 *)ADDR_TOUCH_HID,
+          *(volatile u32 *)ADDR_TOUCH_SEQ,
+          fw[0], fw[1], fw[4], fw[5],
+          *(volatile u32 *)ADDR_SUBMIT_IBS);
 }
 
 /* Entered from the GOP mapping checkpoint right after the mapping is published. */

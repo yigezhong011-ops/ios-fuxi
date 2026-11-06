@@ -11,13 +11,16 @@ rm -rf "$W"; mkdir -p "$W"; cd "$W"; cp "$B/vol.img" vol.img
 cp "$B/kernel.macho" kernel.old
 N=/tmp/t50-syms-${OUT}.txt; llvm-nm --defined-only kernel.old > "$N" 2>/dev/null
 sym() { local a; a=$(grep -E " $1\$" "$N" | head -1 | cut -d' ' -f1); [ -n "$a" ] || { echo "missing $1" >&2; exit 1; }; echo "0x$a"; }
-CAVE=$(sym _copyio_test); CHECK=$(sym _native_legacy_gop_mapping_checkpoint)
+CAVE0=$(sym _copyio_test); CHECK=$(sym _native_legacy_gop_mapping_checkpoint)
+# copyio_test has about 19.6 KB before the next function; stay out of its first page.
+CAVE=$(python3 -c "print(hex($CAVE0 + 0x1000))")
+echo "cave base $CAVE"
 echo "cave $(sym _copyio_test)  checkpoint $CHECK"
 clang --target=aarch64-none-elf -Oz -ffreestanding -fno-builtin -fno-stack-protector -mgeneral-regs-only -fno-pic -fno-unwind-tables -fno-asynchronous-unwind-tables -c $S/touch-cave.c -o cave.o \
   -DADDR_GOP_VIRTUAL=$(sym _native_legacy_gop_virtual)UL -DADDR_GOP_WIDTH=$(sym _native_legacy_gop_width)UL -DADDR_GOP_HEIGHT=$(sym _native_legacy_gop_height)UL \
   -DADDR_PE_CURRENT_CONSOLE=$(sym _PE_current_console)UL -DADDR_REGISTER_SCREENSHOT=$(sym _qcom_usb_debug_register_screenshot)UL
 ld.lld -e touch_entry -Ttext=$CAVE --image-base=$CAVE -z max-page-size=4096 cave.o -o cave.elf
-llvm-objcopy -O binary -j .text cave.elf cave.bin
+llvm-objcopy -O binary -j .text -j .rodata cave.elf cave.bin
 llvm-size --format=sysv cave.elf | grep -E '\.(text|data|bss|rodata)' || true
 ENTRY=$(llvm-nm cave.elf | grep -E ' T touch_entry$' | cut -d' ' -f1)
 echo "cave size $(stat -c%s cave.bin)  entry 0x$ENTRY"
@@ -26,8 +29,8 @@ import struct, sys
 cave, check, entry = (int(x, 16) for x in sys.argv[1:4])
 k = bytearray(open('kernel.old', 'rb').read())
 c = open('cave.bin', 'rb').read()
-if not 0 < len(c) <= 1024:
-    raise SystemExit(f'cave size {len(c)} > 1024 (the window table starts at +0x400)')
+if not 0 < len(c) <= 8192:
+    raise SystemExit(f'cave size {len(c)} > 8192')
 ncmds, segs, at = struct.unpack_from('<I', k, 16)[0], [], 32
 for _ in range(ncmds):
     cmd, size = struct.unpack_from('<II', k, at)
