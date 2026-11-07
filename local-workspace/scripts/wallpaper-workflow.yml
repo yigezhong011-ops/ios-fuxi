@@ -1,0 +1,59 @@
+name: wallpaper overlay
+
+# Build the default iPadOS 17 wallpaper's PNG overlay (J120.png / J120-Dark.png plus the
+# animation's index.xml, assetManifest.caml and a main.caml that points at the PNGs).
+# Runs on macOS because the conversion is `sips`, which only exists there.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dmg:
+        description: member of the IPSW that holds the OS volume
+        default: 044-76040-038.dmg
+
+permissions:
+  contents: read
+
+jobs:
+  overlay:
+    runs-on: macos-26
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free space
+        run: |
+          df -h /
+          sudo rm -rf /Applications/Xcode_15*.app /Applications/Xcode_16*.app 2>/dev/null || true
+          df -h /
+
+      - name: Extract the OS volume from the IPSW
+        run: |
+          set -o pipefail
+          URL='https://updates.cdn-apple.com/2025SpringFCS/fullrestores/122-77166/DCA6CFE8-90E9-4B92-880D-3DE171798E40/iPad_Pro_HFR_17.7.11_21H461_Restore.ipsw'
+          curl -fL --retry 3 "$URL" | bsdtar -xOf - "${{ inputs.dmg }}" > os.dmg
+          ls -l os.dmg
+          df -h /
+
+      - name: Mount and convert
+        run: |
+          set -euo pipefail
+          mkdir -p mnt out
+          hdiutil attach -nobrowse -readonly -mountpoint mnt os.dmg
+          ls mnt | head -20
+          python3 ci/make-wallpaper-overlay.py mnt out
+          ls -l out
+          hdiutil detach mnt || true
+
+      - name: Upload the overlay
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wallpaper-overlay
+          path: out/
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Cleanup
+        if: always()
+        run: rm -f os.dmg

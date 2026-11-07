@@ -1,0 +1,63 @@
+#!/usr/bin/env python3
+"""Define the stubs without prototypes: the call sites create an implicit
+`int sym()`, and clang rejects a later `int sym(void)` as a conflicting type."""
+import shutil
+import subprocess
+from pathlib import Path
+
+DEV = Path('/root/fuxi/fork-device')
+SRC = Path('/root/ux3/fuxi/tree/.cache/xnu-work/bsd/kern/bsd_init.c')
+W = Path('/tmp/stubgen2')
+if W.exists():
+    shutil.rmtree(W)
+(W / 'bsd/kern').mkdir(parents=True)
+
+text = SRC.read_text()
+NAMES = ['boot_log_tick', 'fuxi_usb_append', 'fuxi_usb_debug_start',
+         'native_legacy_display_late_probe', 'native_legacy_display_probe',
+         'native_ram_block_gpu_addon', 'native_ram_block_volume_seed',
+         'native_verified_block_manifest_sha384', 'native_verified_block_root_authorized',
+         'native_verified_block_volume_device', 'native_verified_root_probe',
+         'sheng_pmgr_run']
+
+STUBS = ('\n/*\n'
+         ' * UniXNU link stubs for the fuxi port: the archives that provide these\n'
+         ' * symbols are built from a prelink candidate, and the candidate comes from\n'
+         ' * this very link, so the first link answers them here. They are defined\n'
+         ' * without prototypes to match the implicit declarations at the call sites.\n'
+         ' */\n'
+         + ''.join('int %s() { return 0; }\n' % n for n in NAMES))
+
+(W / 'bsd/kern/bsd_init.c').write_text(text)
+(W / 'bsd/kern/bsd_init.new').write_text(text + STUBS)
+r = subprocess.run(['diff', '-u', 'bsd/kern/bsd_init.c', 'bsd/kern/bsd_init.new'],
+                   cwd=W, capture_output=True, text=True)
+lines = []
+for line in r.stdout.splitlines():
+    if line.startswith('--- '):
+        lines.append('--- a/bsd/kern/bsd_init.c')
+    elif line.startswith('+++ '):
+        lines.append('+++ b/bsd/kern/bsd_init.c')
+    else:
+        lines.append(line)
+patch = DEV / 'patches/xnu/fuxi-link-stubs.patch'
+patch.write_text('\n'.join(lines) + '\n')
+print('补丁 %d 行, hunk: %s' % (len(lines), lines[2] if len(lines) > 2 else ''))
+
+repo = Path('/tmp/stubcheck2')
+if repo.exists():
+    shutil.rmtree(repo)
+(repo / 'bsd/kern').mkdir(parents=True)
+shutil.copy(SRC, repo / 'bsd/kern/bsd_init.c')
+for cmd in (['git', 'init', '-q'], ['git', 'add', '-A'],
+            ['git', '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'base']):
+    subprocess.run(cmd, cwd=repo, check=True)
+chk = subprocess.run(['git', 'apply', '--check', str(patch)], cwd=repo, capture_output=True, text=True)
+print('apply --check:', '通过' if chk.returncode == 0 else chk.stderr[:200])
+
+if chk.returncode == 0:
+    subprocess.run(['git', '-C', str(DEV), 'add', '-A'], check=False)
+    subprocess.run(['git', '-C', str(DEV), '-c', 'user.name=dsh', '-c', 'user.email=dsh@local',
+                    'commit', '-qm', 'patches: define the link stubs without prototypes'], check=False)
+    p = subprocess.run(['git', '-C', str(DEV), 'push', '-q', 'origin', 'old'], capture_output=True)
+    print('推送:', '成功' if p.returncode == 0 else p.stderr.decode()[:120])

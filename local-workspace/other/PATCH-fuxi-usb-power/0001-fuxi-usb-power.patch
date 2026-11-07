@@ -1,0 +1,40 @@
+diff --git a/Platforms/Xiaomi/fuxiPkg/Include/DXE.inc b/Platforms/Xiaomi/fuxiPkg/Include/DXE.inc
+index 0f1def1..864afc6 100644
+--- a/Platforms/Xiaomi/fuxiPkg/Include/DXE.inc
++++ b/Platforms/Xiaomi/fuxiPkg/Include/DXE.inc
+@@ -114,3 +114,10 @@
+   INF Binaries/nuwa/QcomPkg/Drivers/UsbConfigDxe/UsbConfigDxe.inf
+   INF Binaries/nuwa/QcomPkg/Drivers/UsbInitDxe/UsbInitDxe.inf
+   INF Binaries/nuwa/QcomPkg/Drivers/UCDxe/UCDxe.inf
++
++##
++# USB controller power, for the kernel USB debug console. See FUXI_USB_POWER.
++##
++!if $(FUXI_USB_POWER) == 1
++  INF NicobarPkg/Drivers/UsbPwrEnablerDxe/UsbPwrEnablerDxe.inf
++!endif
+diff --git a/Platforms/Xiaomi/fuxiPkg/fuxi.dsc b/Platforms/Xiaomi/fuxiPkg/fuxi.dsc
+index 4d25f2b..d67f563 100644
+--- a/Platforms/Xiaomi/fuxiPkg/fuxi.dsc
++++ b/Platforms/Xiaomi/fuxiPkg/fuxi.dsc
+@@ -53,6 +53,12 @@
+   # path while still publishing a UFS BlockIo for FuxiUfsLogDxe.
+   #
+   FUXI_UFS_STACK                 = 1
++  #
++  # 1 = 给 USB 控制器上电（UsbPwrEnablerDxe），内核的 QcomXnuUsbDebug 需要固件先把
++  #     USB 供电准备好，否则它拿不到 VBUS，不做 D+ 上拉，主机看不到串口。
++  #     只加上电，不加载 UEFI 的 USB 设备栈，也不碰显示。
++  #
++  FUXI_USB_POWER                 = 1
+ 
+   #
+   # 0 = SM8550-AB
+@@ -193,6 +199,7 @@
+   UniXNUPkg/Driver/AdvancedLogDxe/AdvancedLogDxe.inf
+ !endif
+   FatPkg/EnhancedFatDxe/Fat.inf
++  NicobarPkg/Drivers/UsbPwrEnablerDxe/UsbPwrEnablerDxe.inf
+ 
+   #
+   # 板级驱动

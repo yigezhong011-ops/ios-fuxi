@@ -1,0 +1,25 @@
+[Defines]
+  INF_VERSION    = 0x00010005
+  BASE_NAME      = FuxiUsbStartDxe
+  FILE_GUID      = 6f1d2c70-7a54-4b1e-9c3a-5d0e8a4b7f21
+  MODULE_TYPE    = DXE_DRIVER
+  VERSION_STRING = 1.0
+  ENTRY_POINT    = FuxiUsbStartEntry
+
+[Sources]
+  FuxiUsbStartDxe.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  fuxiPkg/Drivers/FuxiUsbStartDxe/FuxiUsbStart.dec
+
+[LibraryClasses]
+  UefiDriverEntryPoint
+  UefiBootServicesTableLib
+  DebugLib
+
+[Protocols]
+  gFuxiUsbInitProtocolGuid
+
+[Depex]
+  gFuxiUsbInitProtocolGuid

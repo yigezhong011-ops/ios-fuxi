@@ -1,0 +1,35 @@
+From c1a4cae912e9f4419ade16f146b1c75b68d68c89 Mon Sep 17 00:00:00 2001
+From: fuxi <fuxi@example.invalid>
+Date: Thu, 5 Nov 2026 09:21:20 +0900
+Subject: [PATCH 4/5] frontend: leave out the shared shader cache helpers of
+ 69efcdc
+
+---
+ NativeBridgeMetalFrontend.mm | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/NativeBridgeMetalFrontend.mm b/NativeBridgeMetalFrontend.mm
+index fb62949..06e0e28 100644
+--- a/NativeBridgeMetalFrontend.mm
++++ b/NativeBridgeMetalFrontend.mm
+@@ -581,8 +581,7 @@ static NSString *shaderCachePath(const unsigned char uuid[16],uint32_t type,cons
+  static dispatch_once_t once;
+  dispatch_once(&once,^{
+   if(getenv("NATIVE_METAL_NO_SHADER_CACHE"))return;
+-  const std::string shared=sharedShaderCacheDirectory();
+-  NSString *caches=shared.empty()?NSSearchPathForDirectoriesInDomains(NSCachesDirectory,NSUserDomainMask,YES).firstObject:@(shared.c_str());
++  NSString *caches=NSSearchPathForDirectoriesInDomains(NSCachesDirectory,NSUserDomainMask,YES).firstObject;
+   NSString *path=caches?[caches stringByAppendingPathComponent:@"native-metal-shaders"]:nil;
+   if(path && [[NSFileManager defaultManager] createDirectoryAtPath:path withIntermediateDirectories:YES attributes:nil error:nil])directory=path;
+  });
+@@ -4321,7 +4320,6 @@ static void installAnswers(Class cls) {
+ extern "C" id native_bridge_metal_open(const char *loader,const char *cache,uint64_t registryID,void (*missing)(const char *,const char *)) {
+  if(gDeviceObject)return gDeviceObject;
+  gMissing=missing;gInFlight=[NSMutableSet set];
+- if(cache && *cache)configureShaderDiskCache(cache);
+  gDevice=nmb_device_open(loader,cache);
+  if(loader)gLoaderPath=loader;
+  if(!gDevice){NBLOG(@"native-metal: device refused: %s",nmb_last_error());return nil;}
+-- 
+2.53.0
+

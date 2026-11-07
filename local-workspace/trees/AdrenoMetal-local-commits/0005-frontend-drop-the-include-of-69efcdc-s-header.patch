@@ -1,0 +1,24 @@
+From f40262d3766790704b1d21f8ea0931bd2ca55a47 Mon Sep 17 00:00:00 2001
+From: fuxi <fuxi@example.invalid>
+Date: Thu, 5 Nov 2026 09:21:43 +0900
+Subject: [PATCH 5/5] frontend: drop the include of 69efcdc's header
+
+---
+ NativeBridgeMetalFrontend.mm | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/NativeBridgeMetalFrontend.mm b/NativeBridgeMetalFrontend.mm
+index 06e0e28..c576359 100644
+--- a/NativeBridgeMetalFrontend.mm
++++ b/NativeBridgeMetalFrontend.mm
+@@ -44,7 +44,6 @@
+ #include <unistd.h>
+ #include <sys/stat.h>
+ #include "bridge/NativeMetalObjects.h"
+-#include "SharedShaderCache.h"
+ #include "NativeBridgeMetalFrontend.h"
+ 
+ extern "C" void sys_dcache_flush(void *start, size_t length);
+-- 
+2.53.0
+

@@ -1,0 +1,21 @@
+diff --git a/scripts/unixnu/kernel.py b/scripts/unixnu/kernel.py
+index 19558bd..93f3034 100644
+--- a/scripts/unixnu/kernel.py
++++ b/scripts/unixnu/kernel.py
+@@ -75,9 +75,15 @@ def linux_env(ctx):
+             'XNU_TOOLCHAIN_BIN': f'{clt / "bin"} {xctoolchain / "bin"}',
+             'UNIXNU_SDKROOT': str(fakeroot), 'UNIXNU_SDK_VERSION': '17.0',
+             'UNIXNU_PLATFORM_PATH': str(fakeroot / 'Platforms/iPhoneOS.platform'),
++            'HOST_CC': str(clt / 'bin/xnu-host-cc'),
++            # xnu-host-cc already force-includes the host prefix header;
++            # the SETUP Makefiles add hostcompat.h on top, and the two
++            # clash on glibc's unistd.h.
++            'HOST_COMPAT_CFLAGS': '',
++            'HOST_COMPAT_LIBS': '',
+             'CROSS_CLANG': str(toolchain / 'llvm/bin/clang'), 'DARWIN_TRIPLE': 'arm64-apple-ios17.0',
+             'CROSS_EXTRA_FLAGS': '-mllvm -disable-atexit-based-global-dtor-lowering',
+-            'CCC_OVERRIDE_OPTIONS': '# +-Wno-missing-designated-field-initializers +-Wno-unused-but-set-global'}
++            'CCC_OVERRIDE_OPTIONS': '+-Wno-missing-designated-field-initializers +-Wno-unused-but-set-global +-Wno-error=format +-Wno-error=implicit-function-declaration +-Wno-error=incompatible-pointer-types +-Wno-error=int-conversion +-DPRIVATE_WIFI_ONLY=1'}
+ 
+ 
+ def archive_plan(ctx):

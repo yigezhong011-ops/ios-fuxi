@@ -1,0 +1,50 @@
+From bfe00c498c53f54b1dba58e41e985a075e8bbb66 Mon Sep 17 00:00:00 2001
+From: bluseliu50 <265648257+bluseliu50@users.noreply.github.com>
+Date: Mon, 2 Nov 2026 15:18:14 +0800
+Subject: [PATCH 2/5] feat(metal): default all clients to single-sample
+ rendering
+
+(cherry picked from commit 5a5058157d3a448b929d634a1400a34c1bcf4e3e)
+---
+ NativeBridgeMetalFrontend.mm         | 4 ++--
+ bridge/interface_regressions_host.mm | 6 ++++--
+ 2 files changed, 6 insertions(+), 4 deletions(-)
+
+diff --git a/NativeBridgeMetalFrontend.mm b/NativeBridgeMetalFrontend.mm
+index 27973d9..fb62949 100644
+--- a/NativeBridgeMetalFrontend.mm
++++ b/NativeBridgeMetalFrontend.mm
+@@ -1043,11 +1043,11 @@ static size_t pvrtcLevelBytes(uint32_t width,uint32_t height,bool twoBit) {
+  while(down*4u<height)down<<=1;
+  return (size_t)across*down*8;
+ }
+-// Poster rendering uses one sample. The override also allows host qualification.
++// All clients use one sample by default. The override also allows host qualification.
+ static bool singleSample() {
+  static const bool enabled=[] {
+   if(const char *value=getenv("NATIVE_METAL_SINGLE_SAMPLE"))return strcmp(value,"0")!=0;
+-  const char *name=getprogname();return name && strstr(name,"Poster");
++  return true;
+  }();
+  return enabled;
+ }
+diff --git a/bridge/interface_regressions_host.mm b/bridge/interface_regressions_host.mm
+index c682c86..3f6cad9 100644
+--- a/bridge/interface_regressions_host.mm
++++ b/bridge/interface_regressions_host.mm
+@@ -38,8 +38,10 @@ static id<MTLBuffer> readback(id<MTLDevice> dev,id<MTLCommandBuffer> cb,id<MTLTe
+   toBuffer:b destinationOffset:0 destinationBytesPerRow:32 destinationBytesPerImage:256];[e endEncoding];return b;
+ }
+ int main(int argc,char **argv) {@autoreleasepool {
+- CHECK(argc==4);const bool single=!strcmp(argv[3],"single");
+- setenv("NATIVE_METAL_SINGLE_SAMPLE",single?"1":"0",1);
++ CHECK(argc==4);const bool defaults=!strcmp(argv[3],"default");
++ const bool single=defaults || !strcmp(argv[3],"single");
++ if(defaults)unsetenv("NATIVE_METAL_SINGLE_SAMPLE");
++ else setenv("NATIVE_METAL_SINGLE_SAMPLE",single?"1":"0",1);
+  id<MTLDevice> dev=native_bridge_metal_open(argv[1],argv[2],0,absent);CHECK(dev);
+  id<MTLCommandQueue> queue=[dev newCommandQueue];CHECK(queue);
+  // Automatic heaps reclaim their ranges while aliasable objects remain alive.
+-- 
+2.53.0
+

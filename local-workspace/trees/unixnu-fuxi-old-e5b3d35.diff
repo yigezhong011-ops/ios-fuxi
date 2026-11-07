@@ -1,0 +1,69 @@
+diff --git a/board.toml b/board.toml
+index 62be139..97a8875 100644
+--- a/board.toml
++++ b/board.toml
+@@ -149,54 +149,14 @@ tools = true                      # show the Tools menu (menu plugins, e.g. Adva
+ title = "fuxi first boot: source 4K XNU to console"
+ dram_size = "0x80000000"             # SMEM RAM table observed on the device
+ skip_setup_tool = "scripts/seed-data-skip-setup.py"   # used by --skip-setup
+-panic_screen = true                  # patch panic() screen output into the payload copy of the kernel
++panic_screen = false                     # t32's kernel has a different entry sequence
+ # The original static/System trust caches, and the owner trust bundle built around them.
+ trust_cache_sha256 = [
+   "7416ca4f8377146626bb284e2133c76bee6cb4e3ee0af5d648b186235a7323a7",
+   "8900d6a93d7a59ce1a872a5c081e559f4240a218f97e12d44d22dda46644d68f",
++  "68219736484d5340770029effc6f9e28d09cced292747122798fe0f98db279fe",
+ ]
+-kernel_args = [
+-  "-v",
+-  "serial=3",
+-  "debug=0x14e",
+-  "boot-progress=2",
+-  "kt_fixed_zones=120",
+-  "offline-apfs-load=1",
+-  "-apfs_shared_datavolume",
+-  "offline-key-events=1",
+-  "offline-legacy-register=1",
+-  "offline-legacy-gop=1",
+-  "offline-legacy-unit-scale=2",
+-  "offline-legacy-pm=1",
+-  "offline-legacy-validate=1",
+-  "offline-legacy-transfer=1",
+-  "offline-legacy-cpu-present=1",
+-  "offline-legacy-phase=4",
+-  "offline-mobile-graphics-client=1",
+-  "offline-mobile-graphics-load=1",
+-  "boot-ui-focus4=SpringBoard",
+-  "native-fuxi-ufs-root=1",
+-  "sheng-log=1",
+-  "sheng-pmgr=2",
+-  "sheng-gpu-metal=1",
+-  "sheng-gpu-addon=1",
+-  "sheng-gpu-dcvs=1",
+-  "sheng-fb-gpu=1",
+-  "sheng-vsync=120",
+-  "armcpu-diagnostics=1",
+-  "armcpu-spi-ipi=1",
+-  "sheng-smp=1",
+-  "sheng-cpufreq=4",
+-  "sheng-aks=1",
+-  "sheng-gpu-power=9",
+-  "sheng-disable-watchdogd=1",
+-  "sheng-disable-jobs=com.apple.identityservicesd,com.apple.locationd,com.apple.CommCenter,com.apple.bluetoothd",
+-  "sheng-lite=1",
+-  "sheng-data-persist=2",
+-  "qcom-usb-debug=1",
+-  "-no_slto_panic",
+-  "ml-timeout-lock-panic-scale=40",
+-]
++kernel_args = []
+ text_fixups = [
+   "BTAudioHALPlugin,38bec,ffc300d1f44f01a9,000080d2c0035fd6",
+ ]
+diff --git a/drivers/QcomXnuUsbDebug b/drivers/QcomXnuUsbDebug
+index 00e2a5a..e2e2b7c 160000
+--- a/drivers/QcomXnuUsbDebug
++++ b/drivers/QcomXnuUsbDebug
+@@ -1 +1 @@
+-Subproject commit 00e2a5acd941751780a94549339e9e0297e8e44f
++Subproject commit e2e2b7c7c7499fa5ff504f6624f745eb54244d2a

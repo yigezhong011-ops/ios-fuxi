@@ -1,0 +1,10 @@
+import pathlib, re
+p = pathlib.Path('/mnt/e/DSH-Fuxi/dump/wsl/step11b-build-boot.sh')
+t = p.read_text()
+m = re.search(r'^CMDLINE="([^"]*)"', t, re.M)
+cmd = m.group(1)
+cmd = re.sub(r'\s*fuxicores=\S+', ' ', cmd)
+cmd = re.sub(r'\s+', ' ', cmd).strip()
+p.write_text(t[:m.start(1)] + cmd + ' ' + t[m.end(1):])
+print('fuxicores removed' if 'fuxicores' not in cmd else 'still there')
+print(cmd[-120:])

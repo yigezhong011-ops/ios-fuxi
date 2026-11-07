@@ -1,0 +1,8 @@
+[Defines]
+  DEC_SPECIFICATION = 0x00010005
+  PACKAGE_NAME      = FuxiUsbStart
+  PACKAGE_GUID      = 0b6e3a54-2f6d-4c19-8e0a-7c1d9f3b5a42
+  PACKAGE_VERSION   = 1.0
+
+[Protocols]
+  gFuxiUsbInitProtocolGuid = { 0x2da15ac7, 0x4909, 0x4c4c, { 0xb8, 0xc3, 0xa7, 0x42, 0x19, 0x5e, 0xa4, 0x6e } }

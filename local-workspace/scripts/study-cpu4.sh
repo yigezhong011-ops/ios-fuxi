@@ -1,0 +1,10 @@
+A=/mnt/e/DSH-Fuxi/dump/wsl/apfs-read.py; IMG=/mnt/e/DSH-Fuxi/logs/data-raw.img
+python3 -I $A $IMG get 0 /mobile/Library/Logs/CrashReporter/ExcUserFault_apsd-1969-12-31-160135.0002.ips /tmp/a.ips >/dev/null 2>&1; echo "== ips fields"; head -c 1600 /tmp/a.ips | tr ',' '\n' | grep -i -E 'cpu|core|proc|model|hardware|os_version' | cut -c1-110 | head -12
+cd /root/fuxi
+echo "=== sheng.md cpus"; sed -n '125,135p;150,155p' unixnu-pin/docs/zh/devices/sheng.md | cut -c1-260
+echo "=== repo search"; for R in fuxi2 unixnu-pin; do grep -rIln --exclude-dir=.git --exclude-dir=docs --exclude-dir=out -E 'sheng-smp|ArmCpu::|armcpu-spi-ipi' $R 2>/dev/null | head -8; done
+echo "=== fuxi board"; ls fuxi2 | head -30; grep -rIn --exclude-dir=.git --exclude-dir=docs --exclude-dir=out -i -E 'kernel_args|sheng-smp|\bcpus\b|cpu_count|num_cpus|ncpus|cpu-count|clusters?\s*=' fuxi2/*.toml fuxi2/board* fuxi2/device* 2>/dev/null | cut -c1-230 | head -18
+echo "=== ADT cpus children reg, all"; for i in 0 1 2 3 4 5 6 7; do python3 -I /mnt/e/DSH-Fuxi/dump/wsl/adt-node-props.py /device-tree/cpus/cpu$i /root/fuxi/idscan/adt.bin 2>&1 | grep -E " reg | state |cluster|cpu-id|reg-private|cpu-impl|cpu-uttdbg" | tr -s ' ' | tr '\n' ';' | cut -c1-150; echo; done
+python3 -I /mnt/e/DSH-Fuxi/dump/wsl/adt-node-props.py /device-tree/cpus/cpu7 /root/fuxi/idscan/adt.bin 2>&1 | cut -c1-90
+python3 -I /mnt/e/DSH-Fuxi/dump/wsl/adt-node-props.py /device-tree/chosen /root/fuxi/idscan/adt.bin 2>&1 | grep -i -E 'cpu|smp|core' | cut -c1-100
+echo "=== other boot args in daily that cap cpus"; export MTOOLS_SKIP_CHECK=1; mtype -i /root/fuxi/auto-t50-auto-120fix-p/vol.img ::/EFI/UniXNU/unixnu.toml | grep -a '^args' | tr ' ' '\n' | grep -E '^(cpus|ncpus|maxcpus|cpu|sheng-cpu)' ; strings -n 4 /root/fuxi/t50-mine/kernel.macho | grep -E '^(cpus|ncpus|sheng-smp-gic|cpu_online|sheng-cpu[a-z-]*)$' | sort -u
