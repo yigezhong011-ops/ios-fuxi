@@ -42,6 +42,18 @@ ctl-run.ps1 -Name t50-auto-gpu7tap -Steps "at 110; home; wait 3; shot desk; tap 
 
 REBOOT 回 `state=nohook` 表示启动后太早，钩子还没装好（95 秒时见过一次），脚本会重试。
 
+## 上游（2026-11-07 09:40 查）
+
+`ljhhkx529/unixnu-fuxi` 的 `V2` 分支 11-05 到 11-06 有 14 个新提交，`old` 分支没动。我们按规则用 `old`，所以只作参考，没有合入。没有涉及触摸、壁纸、GPU、卡米标的提交。
+
+- **复位（2988fa8）：** 作者也发现 `PE_halt_restart` 的卸载路径在这个 UFS 驱动上回不来，改成直接固件复位。和我们的 `patch-t50-usbfast.py` 结论一致。
+- **panic 回 fastboot（8a8f13d、4e39610）：** 启动参数 `fuxi-panic-fastboot=30`。我们的 panic 路径还没验证，可以参考。写 PMIC SDAM 字节 0x48（bootloader = 2）后 PSCI 复位。
+- **串口常驻（a92aed5）：** `scripts/fuxi-usb-debug.sh`，手机重启后自动重连。只支持 macOS 的 `/dev/cu.usbmodem*`，思路可借鉴。
+- **控制台（673ce1c）：** 去掉 `-enable_kprintf_spam`，否则 CDC 丢行。我们的参数本来就没有它。
+- **文档：** `patches/manual/README.md` 说明了驱动端 4 个补丁。
+
+其他参考仓库（GopFramebuffer、QcomXnuUsbDebug 两份、SadNutWall、Kerfand wifi）这次 fetch 没有新提交。`UniXNU/UniXNU` fetch 失败，没查到。
+
 ## 下一步
 
 1. 查点击为什么没打开设置，校准 X。
