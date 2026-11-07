@@ -11,7 +11,7 @@ sym() { local a; a=$(grep -E " $1\$" "$N" | head -1 | cut -d' ' -f1); [ -n "$a" 
 CAVE=$(python3 -c "print(hex($(sym _copyio_test) + 0x1000))"); CHECK=$(sym _native_legacy_gop_mapping_checkpoint); VERB=$(sym _sxnu_control_parse_verb)
 clang --target=aarch64-none-elf -Oz -ffreestanding -fno-builtin -fno-stack-protector -fno-jump-tables -ffixed-x18 -mgeneral-regs-only -fno-pic -fno-unwind-tables -fno-asynchronous-unwind-tables -c $S/touch-cave2.c -o cave.o \
   -DADDR_GOP_VIRTUAL=$(sym _native_legacy_gop_virtual)UL -DADDR_GOP_WIDTH=$(sym _native_legacy_gop_width)UL -DADDR_GOP_HEIGHT=$(sym _native_legacy_gop_height)UL \
-  -DADDR_PE_CURRENT_CONSOLE=$(sym _PE_current_console)UL -DADDR_REGISTER_SCREENSHOT=$(sym _qcom_usb_debug_register_screenshot)UL -DADDR_PARSE_VERB=${VERB}UL -DADDR_SCHED_CORES=$(sym _sched_perfcontrol_update_recommended_cores)UL ${AUTO_CORES:+-DAUTO_CORES=$AUTO_CORES -DADDR_IOSLEEP=$(sym _IOSleep)UL -DADDR_MACH_TIME=$(sym _mach_absolute_time)UL}
+  -DADDR_PE_CURRENT_CONSOLE=$(sym _PE_current_console)UL -DADDR_REGISTER_SCREENSHOT=$(sym _qcom_usb_debug_register_screenshot)UL -DADDR_PARSE_VERB=${VERB}UL -DADDR_SCHED_CORES=$(sym _sched_perfcontrol_update_recommended_cores)UL ${AUTO_CORES:+-DAUTO_CORES=$AUTO_CORES -DADDR_IOSLEEP=$(sym _IOSleep)UL -DADDR_MACH_TIME=$(sym _mach_absolute_time)UL} ${REJ_REPORT:+-DREJ_REPORT}
 ld.lld -e touch_entry -Ttext=$CAVE --image-base=$CAVE -z max-page-size=4096 cave.o -o cave.elf
 llvm-objcopy -O binary -j .text -j .rodata cave.elf cave.bin
 llvm-objdump -h cave.elf | grep -E ' \.(text|rodata|data|bss) ' | cut -c1-60

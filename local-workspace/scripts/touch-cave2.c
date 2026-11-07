@@ -201,6 +201,27 @@ __attribute__((noinline)) static void report(u32 kind)
                                 *(const volatile u32 *)ADDR_TOUCH_SEQ,
                                 fw[0], fw[1], fw[4], fw[5],
                                 *(const volatile u32 *)ADDR_SUBMIT_IBS);
+#ifdef REJ_REPORT
+  /* The display validator's record of the last refused swap, from the kernel's own diagnostics. */
+  const volatile u32 *r = (const volatile u32 *)0xfffffff00c181f38UL;      /* rej_reason; +2 words surfaces; +10 state; +13 options; +16 size; +18 rects */
+  const volatile u64 *s = (const volatile u64 *)0xfffffff00c181fc0UL;      /* width, height, format, planes, stride, allocation, length */
+  ((darwin_printf8)ADDR_PRINTF)("FUXI120R vreason=%x vresult=%x accepted=%x rejected=%x why=%x w=%llx h=%llx fmt=%llx\n",
+                                0, 0, 0, 0, 0, 0, 0,
+                                *(const volatile u32 *)0xfffffff00c180e60UL, *(const volatile u32 *)0xfffffff00c180e5cUL,
+                                *(const volatile u32 *)0xfffffff00c181f30UL, *(const volatile u32 *)0xfffffff00c181f34UL,
+                                r[0], s[0], s[1], s[2]);
+  ((darwin_printf8)ADDR_PRINTF)("FUXI120Q planes=%llx stride=%llx alloc=%llx len=%llx surf=%llx,%llx,%llx,%llx\n",
+                                0, 0, 0, 0, 0, 0, 0,
+                                s[3], s[4], s[5], s[6],
+                                *(const volatile u64 *)0xfffffff00c181f40UL, *(const volatile u64 *)0xfffffff00c181f48UL,
+                                *(const volatile u64 *)0xfffffff00c181f50UL, *(const volatile u64 *)0xfffffff00c181f58UL);
+  ((darwin_printf8)ADDR_PRINTF)("FUXI120P state=%x,%x,%x opts=%x,%x,%x size=%x,%x\n",
+                                0, 0, 0, 0, 0, 0, 0,
+                                r[10], r[11], r[12], r[13], r[14], r[15], r[16], r[17]);
+  ((darwin_printf8)ADDR_PRINTF)("FUXI120O rects=%x,%x,%x,%x %x,%x,%x,%x\n",
+                                0, 0, 0, 0, 0, 0, 0,
+                                r[18], r[19], r[20], r[21], r[22], r[23], r[24], r[25]);
+#endif
 }
 
 __attribute__((noinline)) static int capture_after_gesture(void *cookie, u8 *rgb, u64 capacity, u32 *width, u32 *height)
