@@ -119,3 +119,36 @@ L3: ormedContentView
 ## 五、E 盘
 
 清理了 `logs/carve-{hello2,hp1,hp2}`（5.4 GB）等，删后 **19–20 GB 可用**。
+
+## 六、锁屏红条：试过提高重建预算，无效
+
+状态栏库的 `repair()` 每个 family 最多重建 12 次，`attempt()` 每 2 秒一次、共 30 次（60 秒）。
+锁屏那条栏可能出现在重试结束之后，所以把预算改成 **40 次重建 / 60 次重试（120 秒）**，
+编了 `t50-auto-m2vsb2.img` 验：
+
+```
+shot-t50-auto-m2vsb2-094833-lock.png   红条仍在（74812 字节，和旧版锁屏一致）
+```
+
+**结论：不是预算问题。** 两个待查方向：
+
+1. 锁屏那条栏不在 `[UIWindow allWindowsIncludingInternalWindows:onlyVisibleWindows:]` 能扫到的
+   窗口里（比如在另一个进程：SpringBoard 的锁屏由 `CoverSheet` 呈现）。
+2. 它用的不是 `_UIStatusBar` / `STUIStatusBar`，而是第三个类。
+
+下一步：用探针在锁屏上把窗口和栏的类名打印出来，再决定修哪条路。
+
+## 七、Hello 导航两次跑偏（记录）
+
+- 用 `ready 250; wait 20` 起手：一次进壁纸编辑器蓝色预设，一次进「辅助功能 → 切换控制」。
+- 用文档的 `at 125` 起手：进到编辑器，但抓到的是 **tick=1** 的瞬间
+  （`pwt 0 set 0 | views 8 draws 13 presents 1 commits 1`），翻转实验没跑。
+- 屏幕 30 秒无触摸会熄灭，截图变 4524 字节全黑；锁屏截图前要先 `tap` 一次唤醒。
+
+## 八、状态
+
+```
+boot_b = t50-daily-m2vsb.img（新插件 + 状态栏库），已刷入并读回校验
+备份 boot_b-before-m2vsb-082703.img sha d3b1fd74b156a6da
+E: 约 19 GB 可用
+```
